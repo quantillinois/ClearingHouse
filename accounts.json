@@ -3,23 +3,14 @@
         "mpid": "MPID0",
         "balance": 1000000,
         "past_trades": [],
-        "open_positions": [
-            "TPC0"
-        ],
-        "password": "+>UQmAOP%M:OF:JK"
+        "open_positions": [],
+        "password": "&co%VR=u8T?k-&}1"
     },
     "MPID1": {
         "mpid": "MPID1",
         "balance": 1000000,
         "past_trades": [],
         "open_positions": [],
-        "password": "X~dd(usk8J%$L&pv"
-    },
-    "MPID2": {
-        "mpid": "MPID2",
-        "balance": 1000000,
-        "past_trades": [],
-        "open_positions": [],
-        "password": "ff%-W_~=?-F(p1sA"
+        "password": "lo8:.31ZL!*sW:UL"
     }
 }

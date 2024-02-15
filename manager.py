@@ -16,19 +16,19 @@ class Manager:
             filepath (str): local filepath to preexisting account data
         """
         self._filepath = filepath
-        self._accounts, self._mpids = self.load_accounts()
+        self._accounts_dict = self.load_accounts()
 
     def get_mpids(self) -> List[str]:
         """
-        Getter for _mpid attribute
+        Getter for MPIDs
         """
-        return self._mpids
+        return list(self._accounts_dict.keys())
     
     def get_accounts(self) -> List[Account]:
         """
-        Getter for _accounts attribute
+        Getter for Account objects
         """
-        return self._accounts
+        return list(self._accounts_dict.values())
     
     def modify_balance(self, mpid, amount):
         """
@@ -37,12 +37,12 @@ class Manager:
             mpid: mpid of account to modify balance
             amount: net change of amount to reflect to account
         """
-        if mpid in self._mpids:
-            idx = self._mpids.index(mpid)
-            self._accounts[idx]._balance += amount
-            return self._accounts[idx]._balance
+        if mpid in self._accounts_dict:
+            self._accounts_dict[mpid]._balance += amount
+            return self._accounts_dict[mpid]._balance
         else:
             raise ValueError("MPID does not exist")
+    
     def trade_position(self, mpid_b, mpid_s, trade):
         """
         Clearing house handles trades and can add positions to Accounts
@@ -51,18 +51,17 @@ class Manager:
             mpid_s: mpid of sell account to sell position
             trade: underlying position to trade
         """
-        if mpid_b in self._mpids and mpid_s in self._mpids:
-            seller_idx = self._mpids.index(mpid_s)
-            buyer_idx = self._mpids.index(mpid_b)
+        if mpid_b in self._accounts_dict and mpid_s in self._accounts_dict:
+            seller = self._accounts_dict[mpid_s]
+            buyer = self._accounts_dict[mpid_b]
 
-            if trade in self._accounts[seller_idx]._open_positions:
-                trade_idx = self._accounts[seller_idx]._open_positions.index(trade)
-                del self._accounts[seller_idx]._open_positions[trade_idx]
-                self._accounts[buyer_idx]._open_positions.append(trade)
+            if trade in seller._open_positions:
+                seller._open_positions.remove(trade)
+                buyer._open_positions.append(trade)
             else:
-                raise ValueError("MPID_s does not have position to sell") 
+                raise ValueError("Seller does not have position to sell") 
         else:
-            raise ValueError("MPID_b or MPID_s does not exist")
+            raise ValueError("Buyer or Seller MPID does not exist")
     
     #TODO
     def settle_positions(self, turn):
@@ -76,54 +75,42 @@ class Manager:
         Loads accounts from preexisting account data from self.filepath
         """
         if not os.path.exists(self._filepath):
-            return [], []
+            return {}
         
         try:
             with open(self._filepath, 'r', encoding='utf-8') as file:
-                # Attempt to load the file
                 data = json.load(file)
         except json.decoder.JSONDecodeError:
-            data = {}
-        #print(data)
-        accounts = []
-        mpids = []
-        for mpid, details in data.items():
-            accounts.append(Account(**details))
-            mpids.append(mpid)
-            
-        return accounts, mpids
+            return {}
+        
+        accounts_dict = {mpid: Account(**details) for mpid, details in data.items()}
+        return accounts_dict
 
     def create_account(self):
         """
-        Create a new Account object with unique mpid in the format "MPID1"
+        Create a new Account object with unique mpid in the format "MPID0"
         """
         mpid = "MPID0"  # Starting mpid
-        if len(self._mpids) > 0:
-            last_num = int(self._mpids[-1][4:]) 
+        if self._accounts_dict:
+            last_num = max(int(mpid[4:]) for mpid in self._accounts_dict.keys())
             mpid = f"MPID{last_num + 1}"
 
-        self._mpids.append(mpid)
         new_acc = Account(mpid)
-        self._accounts.append(new_acc)
+        self._accounts_dict[mpid] = new_acc
         return new_acc._password
 
     def save_accounts(self):
         """
-        Write account info to file at the end of a session.
-        Converts account object attributes to a dictionary without leading underscores in keys.
+        Save account info to file
         """
         with open(self._filepath, 'w', encoding='utf-8') as file:
-            data = {}
-            for i in range(len(self._mpids)):
-                account = self._accounts[i]
-                account_data = {
-                    "mpid": account._mpid,
-                    "balance": account._balance,
-                    "past_trades": account._past_trades,
-                    "open_positions": account._open_positions,
-                    "password": account._password
-                }
-                data[self._mpids[i]] = account_data
+            data = {mpid: {
+                    "mpid": acc._mpid,
+                    "balance": acc._balance,
+                    "past_trades": acc._past_trades,
+                    "open_positions": acc._open_positions,
+                    "password": acc._password
+                } for mpid, acc in self._accounts_dict.items()}
             
             json.dump(data, file, indent=4)
 
@@ -137,11 +124,10 @@ class Manager:
 # manual testing
 if __name__ == "__main__":
     manager = Manager("accounts.json")
-    # manager.create_account()
-    # manager.create_account()
-    acc0 = manager.get_accounts()[0]
-    acc1 = manager.get_accounts()[1]
     manager.create_account()
+    manager.create_account()
+    # acc0 = manager.get_accounts()[0]
+    # acc1 = manager.get_accounts()[1]
     # acc0.add_position("TPC0")
     # manager.trade_position("MPID0", "MPID1", "TPC0")
     # print(manager.get_accounts()[0].get_positions("+>UQmAOP%M:OF:JK"))
