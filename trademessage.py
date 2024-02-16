@@ -41,7 +41,7 @@ class TradeProcessing:
                 buyer_order_id = trade_data.get('buyer_order_id')
                 seller_mpid = trade_data.get('seller_mpid')
                 seller_order_id = trade_data.get('seller_order_id')
-                trade_id = trade_data.get('trade_id')
+                trade_id = int(trade_data.get('trade_id'))
                 buy_turn = int(trade_data.get('buy_turn'))
                 sell_turn = int(trade_data.get('sell_turn'))
                 if trade_data.get('settled') == "True":
@@ -50,8 +50,12 @@ class TradeProcessing:
                     settled = False
                 # Create TradeMessage object
                 trade = TradeMessage(ticker, timestamp, price, volume, buyer_mpid, buyer_order_id, seller_mpid, seller_order_id, trade_id)
+                if trade_id > self.trade_id_count:
+                    for _ in range(trade_id - self.trade_id_count):
+                        self.trade_data.append(None)
+                    self.trade_id_count = trade_id
                 self.trade_data.append(TradeInfo(trade,buy_turn,sell_turn,settled))
-                self.trade_id_count+=1
+                self.trade_id_count=self.trade_id_count+1
 
     def read_previous_trades_txt(self, pasttradefile):
         self.__read_trades_txt(pasttradefile)
@@ -61,6 +65,10 @@ class TradeProcessing:
         buy_turn = int(newtrade.ticker[4:6])
         sell_turn = int(newtrade.ticker[-2:])
         settled = self.is_settled(newtrade.trade_id)
+        if int(newtrade.trade_id) > self.trade_id_count:
+            for _ in range(int(newtrade.trade_id) - self.trade_id_count):
+                self.trade_data.append(None)
+            self.trade_id_count = int(newtrade.trade_id)
         self.trade_data.append(TradeInfo(newtrade,buy_turn,sell_turn,settled))
         self.trade_id_count+=1
 
@@ -70,29 +78,30 @@ class TradeProcessing:
     def write_trades_to_file(self, file_name):
         with open(file_name, 'w') as file:
             for trade_info in self.trade_data:
-                writetrade = trade_info.trade
-                ticker = writetrade.ticker
-                timestamp = writetrade.timestamp
-                price = writetrade.price
-                volume = writetrade.volume
-                buyer_mpid = writetrade.buyer_mpid
-                buyer_order_id = writetrade.buyer_order_id
-                seller_mpid = writetrade.seller_mpid
-                seller_order_id = writetrade.seller_order_id
-                trade_id = writetrade.trade_id 
+                if trade_info!=None:
+                    writetrade = trade_info.trade
+                    ticker = writetrade.ticker
+                    timestamp = writetrade.timestamp
+                    price = writetrade.price
+                    volume = writetrade.volume
+                    buyer_mpid = writetrade.buyer_mpid
+                    buyer_order_id = writetrade.buyer_order_id
+                    seller_mpid = writetrade.seller_mpid
+                    seller_order_id = writetrade.seller_order_id
+                    trade_id = writetrade.trade_id 
 
-                buy_turn = trade_info.buy_turn
-                sell_turn = trade_info.sell_turn
-                settled = trade_info.settled
+                    buy_turn = trade_info.buy_turn
+                    sell_turn = trade_info.sell_turn
+                    settled = trade_info.settled
 
-                # Create the TradeMessage string
-                trade_message_str = f"TradeMessage(ticker='{ticker}', timestamp={timestamp}, price={price}, volume={volume}, buyer_mpid='{buyer_mpid}', buyer_order_id='{buyer_order_id}', seller_mpid='{seller_mpid}', seller_order_id='{seller_order_id}', trade_id='{trade_id}')"
+                    # Create the TradeMessage string
+                    trade_message_str = f"TradeMessage(ticker='{ticker}', timestamp={timestamp}, price={price}, volume={volume}, buyer_mpid='{buyer_mpid}', buyer_order_id='{buyer_order_id}', seller_mpid='{seller_mpid}', seller_order_id='{seller_order_id}', trade_id='{trade_id}')"
 
-                # Create the additional attributes string
-                additional_attributes_str = f", buy_turn='{buy_turn}', sell_turn='{sell_turn}', settled='{settled}'"
-                # Combine both strings
-                trade_str = trade_message_str + additional_attributes_str + "\n"
-                file.write(trade_str)
+                    # Create the additional attributes string
+                    additional_attributes_str = f", buy_turn='{buy_turn}', sell_turn='{sell_turn}', settled='{settled}'"
+                    # Combine both strings
+                    trade_str = trade_message_str + additional_attributes_str + "\n"
+                    file.write(trade_str)
             self.trade_data.clear()
             self.trade_id_count = 0
 
@@ -172,9 +181,9 @@ class TradeProcessing:
 if __name__ == "__main__":
     trade_processor = TradeProcessing()
     trade_processor.read_previous_trades_txt("testin.txt")
-    trade_processor.read_new_trades(TradeMessage(ticker='TPCF0817', timestamp=8, price=100, volume=90, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='18'))
-    trade_processor.read_new_trades(TradeMessage(ticker='TPCF0521', timestamp=5, price=95, volume=100, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='14'))
-    trade_processor.read_new_trades(TradeMessage(ticker='TPCF1028', timestamp=10, price=105, volume=110, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='23'))
+    trade_processor.read_new_trades(TradeMessage(ticker='TPCF0817', timestamp=8, price=100, volume=90, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='4'))
+    trade_processor.read_new_trades(TradeMessage(ticker='TPCF0521', timestamp=5, price=95, volume=100, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='6'))
+    trade_processor.read_new_trades(TradeMessage(ticker='TPCF1028', timestamp=10, price=105, volume=110, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='7'))
     trade_processor.write_trades_to_file("testout.txt")
 
 
