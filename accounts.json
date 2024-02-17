@@ -1,0 +1,25 @@
+{
+    "MPID0": {
+        "mpid": "MPID0",
+        "balance": 1000000,
+        "past_trades": [],
+        "open_positions": {},
+        "password": "r|1,#wm\"p[^`R&(v"
+    },
+    "MPID1": {
+        "mpid": "MPID1",
+        "balance": 1000000,
+        "past_trades": [],
+        "open_positions": {
+            "TPC": 200
+        },
+        "password": "pFF%\"r;MQbe%IY=_"
+    },
+    "MPID2": {
+        "mpid": "MPID2",
+        "balance": 1000000,
+        "past_trades": [],
+        "open_positions": {},
+        "password": "yOt*(TU9G=j\\t.RN"
+    }
+}

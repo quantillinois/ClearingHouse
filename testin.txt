@@ -1,0 +1,3 @@
+TradeMessage(ticker='TPCF0604', timestamp=6, price=88, volume=95, buyer_mpid='MPID0', buyer_order_id='0000000003', seller_mpid='MPID1', seller_order_id='0000000003', trade_id='0'), buy_turn='6', sell_turn='4', settled='False'
+TradeMessage(ticker='TPCF0910', timestamp=9, price=102, volume=105, buyer_mpid='MPID1', buyer_order_id='0000000003', seller_mpid='MPID0', seller_order_id='0000000003', trade_id='1'), buy_turn='9', sell_turn='10', settled='False'
+TradeMessage(ticker='TPCF0202', timestamp=12, price=97, volume=100, buyer_mpid='MPID2', buyer_order_id='0000000003', seller_mpid='MPID0', seller_order_id='0000000003', trade_id='3'), buy_turn='2', sell_turn='2', settled='False'
