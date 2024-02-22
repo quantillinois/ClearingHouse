@@ -1,9 +1,22 @@
 from typing import Tuple, List, Dict
 import os
+import random
+import string
 import json
+import sqlite3
+from collections import defaultdict
 from account import Account
 
-ADMIN_KEY = "ADMIN"
+PASSWORD_LENGTH = 16
+STARTING_BALANCE = 1000000
+
+def generate_password():
+    """
+    Generates random 16 byte password for account
+    """
+    chars = string.ascii_letters + string.digits + string.punctuation
+    password = ''.join(random.choice(chars) for _ in range(PASSWORD_LENGTH))
+    return password
 
 class Manager:
     """
@@ -11,13 +24,14 @@ class Manager:
     and handles account creation and account saving to file.
     """
     
-    def __init__(self, filepath: str):
+    def __init__(self, db_path: str):
         """
         Constructor for Manager class that loads preexisting account data
-        Args:
-            filepath (str): local filepath to preexisting account data
         """
-        self.__filepath = filepath
+        self.__db_path = db_path
+        self.conn = sqlite3.connect(self.__db_path)
+        self.cursor = self.conn.cursor()
+
         self.__accounts_dict = self.load_accounts()
 
     def get_mpids(self) -> List[str]:
@@ -46,60 +60,70 @@ class Manager:
             amount: net change of amount to reflect to account
         """
         if mpid in self.__accounts_dict:
-            old_bal = self.__accounts_dict[mpid].get_balance(ADMIN_KEY)
-            self.__accounts_dict[mpid].set_balance(ADMIN_KEY, old_bal + amount)
-            return self.__accounts_dict[mpid].get_balance(ADMIN_KEY)
+            old_bal = self.__accounts_dict[mpid].get_balance()
+            self.__accounts_dict[mpid].set_balance(old_bal + amount)
+            self.cursor.execute(("UPDATE accounts SET balance = ? WHERE mpid = ?"), (old_bal + amount, mpid))
+            return self.__accounts_dict[mpid].get_balance()
         else:
             raise ValueError("MPID does not exist")
     
-    # def trade_position(self, mpid_b, mpid_s, trade):
-    #     """
-    #     Clearing house handles trades and can add positions to Accounts
-    #     Args:
-    #         mpid_b: mpid of buyer account to add position
-    #         mpid_s: mpid of sell account to sell position
-    #         trade: underlying position to trade
-    #     """
-    #     if mpid_b in self._accounts_dict and mpid_s in self._accounts_dict:
-    #         seller = self._accounts_dict[mpid_s]
-    #         buyer = self._accounts_dict[mpid_b]
-
-    #         if trade in seller._open_positions:
-    #             seller._open_positions.remove(trade)
-    #             buyer._open_positions.append(trade)
-    #         else:
-    #             raise ValueError("Seller does not have position to sell") 
-    #     else:
-    #         raise ValueError("Buyer or Seller MPID does not exist")
-    
-    def add_position(self, mpid: str, trade, long: bool):
+    def add_position(self, mpid: str, ticker: str, volume: int):
         """
         Add trade position either long or short to mpid's account
         Args:
             mpid: MPID of user to add trade to
-            trade: underlying trade to add
-            long: TRUE if long position FALSE if short position
+            trade: underlying trade ticker to add
+            volume: volume of trade
         """
         if mpid in self.__accounts_dict:
-            self.__accounts_dict[mpid].add_position(ADMIN_KEY, trade, long)
+            self.__accounts_dict[mpid].add_position(ticker, volume)
+            self.cursor.execute("INSERT INTO positions (mpid, ticker, volume) VALUES (?, ?, ?)",
+                            (mpid, ticker, volume))
         else:
             raise ValueError("MPID does not exist")
     
 
-    def load_accounts(self) -> Tuple[List[Account], List[str]]:
-        """
-        Loads accounts from preexisting account data from self.filepath
-        """
-        if not os.path.exists(self.__filepath):
-            return {}
+    # def load_accounts(self):
+    #     """
+    #     Loads accounts from preexisting account data from self.filepath
+    #     """
+    #     if not os.path.exists(self.__filepath):
+    #         return {}
         
-        try:
-            with open(self.__filepath, 'r', encoding='utf-8') as file:
-                data = json.load(file)
-        except json.decoder.JSONDecodeError:
-            return {}
+    #     try:
+    #         with open(self.__filepath, 'r', encoding='utf-8') as file:
+    #             data = json.load(file)
+    #     except json.decoder.JSONDecodeError:
+    #         return {}
         
-        accounts_dict = {mpid: Account(**details) for mpid, details in data.items()}
+    #     accounts_dict = {mpid: Account(**details) for mpid, details in data.items()}
+    #     return accounts_dict
+    
+    def load_accounts(self) -> Dict[str, Account]:
+        """
+        Load accounts from the SQLite database and instantiate Account objects for each.
+        
+        Returns:
+            A dictionary mapping MPIDs to Account objects.
+        """
+        self.cursor.execute('''
+                            SELECT a.mpid, a.password, a.balance, t.trade_details, p.ticker, p.volume
+                            FROM accounts a
+                            LEFT JOIN past_trades t ON a.mpid = t.mpid
+                            LEFT JOIN positions p ON a.mpid = p.mpid
+                            ''')
+        rows = self.cursor.fetchall()
+        accounts_dict = {}
+        for row in rows:
+            mpid, password, balance, trade_details, ticker, volume = row
+            if mpid in accounts_dict:
+                if ticker is not None and volume is not None:
+                    accounts_dict[mpid].add_position(ticker, volume)
+                if trade_details is not None:
+                    accounts_dict[mpid].add_past_trade(trade_details)
+            else:
+                accounts_dict[mpid] = Account(mpid, password, balance, [], defaultdict(int))
+        
         return accounts_dict
 
     def create_account(self) -> str:
@@ -113,36 +137,41 @@ class Manager:
         if self.__accounts_dict:
             last_num = max(int(mpid[4:]) for mpid in self.__accounts_dict.keys())
             mpid = f"MPID{last_num + 1}"
-
-        new_acc = Account(mpid)
+        password = generate_password()
+        new_acc = Account(mpid, password, STARTING_BALANCE, [], defaultdict(int))
         self.__accounts_dict[mpid] = new_acc
-        return new_acc.get_password(ADMIN_KEY)
+        self.cursor.execute("INSERT INTO accounts (mpid, password, balance) VALUES (?, ?, ?)",
+                            (mpid, password, STARTING_BALANCE))
+        
+        return password
 
-    def save_accounts(self):
-        """
-        Save account info to file
-        """
-        with open(self.__filepath, 'w', encoding='utf-8') as file:
-            data = {mpid: {
-                    "mpid": acc.get_mpid(ADMIN_KEY),
-                    "balance": acc.get_balance(ADMIN_KEY),
-                    "past_trades": acc.get_past_trades(ADMIN_KEY),
-                    "long_positions": acc.get_long_positions(ADMIN_KEY),
-                    "short_positions": acc.get_short_positions(ADMIN_KEY),
-                    "password": acc.get_password(ADMIN_KEY)
-                } for mpid, acc in self.__accounts_dict.items()}
+    # def save_accounts(self):
+    #     """
+    #     Save account info to file
+    #     """
+    #     with open(self.__filepath, 'w', encoding='utf-8') as file:
+    #         data = {mpid: {
+    #                 "mpid": acc.get_mpid(),
+    #                 "balance": acc.get_balance(),
+    #                 "past_trades": acc.get_past_trades(),
+    #                 "positions": acc.get_positions(),
+    #                 "password": acc.get_password()
+    #             } for mpid, acc in self.__accounts_dict.items()}
             
-            json.dump(data, file, indent=4)
+    #         json.dump(data, file, indent=4)
+    
+    def close(self):
+        """
+        Close the database connection.
+        """
+        self.conn.commit()
+        self.conn.close()
 
 # manual testing
 if __name__ == "__main__":
-    manager = Manager("accounts.json")
-    manager.create_account()
-    manager.create_account()
-    # acc0 = manager.get_accounts()[0]
-    # acc1 = manager.get_accounts()[1]
-    # acc0.add_position("TPC0")
-    # manager.trade_position("MPID0", "MPID1", "TPC0")
-    # print(manager.get_accounts()[0].get_positions("+>UQmAOP%M:OF:JK"))
-    # print(manager.get_accounts()[1].get_positions("X~dd(usk8J%$L&pv"))
-    manager.save_accounts()
+    manager = Manager("accounts.db")
+    # manager.create_account()
+    # manager.create_account()
+    manager.add_position("MPID0", "TPC1010", 5)
+
+    manager.close()
