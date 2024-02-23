@@ -4,6 +4,7 @@ import random
 import string
 import json
 import sqlite3
+import hashlib
 from collections import defaultdict
 from account import Account
 
@@ -17,6 +18,12 @@ def generate_password():
     chars = string.ascii_letters + string.digits + string.punctuation
     password = ''.join(random.choice(chars) for _ in range(PASSWORD_LENGTH))
     return password
+
+def hash_password(password: str) -> str:
+    """
+    Hashes a password using SHA-256 and returns the hexadecimal representation.
+    """
+    return hashlib.sha256(password.encode()).hexdigest()
 
 class Manager:
     """
@@ -82,22 +89,6 @@ class Manager:
         else:
             raise ValueError("MPID does not exist")
     
-
-    # def load_accounts(self):
-    #     """
-    #     Loads accounts from preexisting account data from self.filepath
-    #     """
-    #     if not os.path.exists(self.__filepath):
-    #         return {}
-        
-    #     try:
-    #         with open(self.__filepath, 'r', encoding='utf-8') as file:
-    #             data = json.load(file)
-    #     except json.decoder.JSONDecodeError:
-    #         return {}
-        
-    #     accounts_dict = {mpid: Account(**details) for mpid, details in data.items()}
-    #     return accounts_dict
     
     def load_accounts(self) -> Dict[str, Account]:
         """
@@ -138,28 +129,13 @@ class Manager:
             last_num = max(int(mpid[4:]) for mpid in self.__accounts_dict.keys())
             mpid = f"MPID{last_num + 1}"
         password = generate_password()
+        hashed_password = hash_password(password)
         new_acc = Account(mpid, password, STARTING_BALANCE, [], defaultdict(int))
         self.__accounts_dict[mpid] = new_acc
         self.cursor.execute("INSERT INTO accounts (mpid, password, balance) VALUES (?, ?, ?)",
-                            (mpid, password, STARTING_BALANCE))
-        
+                            (mpid, hashed_password, STARTING_BALANCE))
         return password
 
-    # def save_accounts(self):
-    #     """
-    #     Save account info to file
-    #     """
-    #     with open(self.__filepath, 'w', encoding='utf-8') as file:
-    #         data = {mpid: {
-    #                 "mpid": acc.get_mpid(),
-    #                 "balance": acc.get_balance(),
-    #                 "past_trades": acc.get_past_trades(),
-    #                 "positions": acc.get_positions(),
-    #                 "password": acc.get_password()
-    #             } for mpid, acc in self.__accounts_dict.items()}
-            
-    #         json.dump(data, file, indent=4)
-    
     def close(self):
         """
         Close the database connection.
@@ -172,6 +148,7 @@ if __name__ == "__main__":
     manager = Manager("accounts.db")
     # manager.create_account()
     # manager.create_account()
-    manager.add_position("MPID0", "TPC1010", 5)
+    print(manager.get_account_dict()['MPID0'].get_password())
+    # manager.add_position("MPID0", "TPC1010", 5)
 
     manager.close()
