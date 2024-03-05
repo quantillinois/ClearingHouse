@@ -1,5 +1,4 @@
 from trademessage import *
-from account import Account
 from manager import Manager
 
 class ClearingHouse:
@@ -70,8 +69,12 @@ class ClearingHouse:
         print("Account", buyer_mpid, "holding of", security, "is now", buyer_holding)
         print("Account", seller_mpid, "holding of", security, "is now", seller_holding)
 
+    def end_session(self):
+        self._acc_manager.save_accounts()
+
 
 if __name__ == "__main__":
     clearinghouse = ClearingHouse("testin.txt", "accounts.json")
     clearinghouse.on_turn(6, 200)
     clearinghouse.on_turn(2, 160)
+    clearinghouse.end_session()

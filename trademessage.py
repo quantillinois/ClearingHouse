@@ -91,7 +91,7 @@ class TradeProcessing:
         self.__read_trades_txt(pasttradefile)
         return self.trade_data
     
-    def read_new_trades(self, newtrade):
+    def read_new_trade(self, newtrade):
         buy_turn = int(newtrade.ticker[4:6])
         sell_turn = int(newtrade.ticker[-2:])
         settled = self.is_settled(newtrade.trade_id)
