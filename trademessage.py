@@ -100,16 +100,16 @@ class TradeProcessing:
                 self.trade_data.append(None)
             self.trade_id_count = int(newtrade.trade_id)
         self.trade_data.append(TradeInfo(newtrade,buy_turn,sell_turn,settled))
-        self.trade_id_count+=1
+        self.trade_id_count += 1
 
     def get_trades(self):
         return self.trade_data
     
+    def get_trade_by_id(self, trade_id: int):
+        return self.trade_data[trade_id]
+    
     def set_to_settled(self, trade_id):
         self.trade_data[trade_id].settled = True
-
-    def is_settled(self, trade_id):
-        return True  # Placeholder for actual implementation
 
     def write_trades_to_file(self, file_name):
         with open(file_name, 'w') as file:
@@ -140,78 +140,6 @@ class TradeProcessing:
                     file.write(trade_str)
             self.trade_data.clear()
             self.trade_id_count = 0
-
-        # def get_ticker(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.ticker
-        #     else:
-        #         return None
-
-        # def get_timestamp(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.timestamp
-        #     else:
-        #         return None
-
-        # def get_price(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.price
-        #     else:
-        #         return None
-
-        # def get_volume(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.volume
-        #     else:
-        #         return None
-
-        # def get_buyer_mpid(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.buyer_mpid
-        #     else:
-        #         return None
-
-        # def get_buyer_order_id(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.buyer_order_id
-        #     else:
-        #         return None
-
-        # def get_seller_mpid(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.seller_mpid
-        #     else:
-        #         return None
-
-        # def get_seller_order_id(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.seller_order_id
-        #     else:
-        #         return None
-
-        # def get_trade_id(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].trade.trade_id
-        #     else:
-        #         return None
-        
-        # def get_buy_turn(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].buy_turn
-        #     else:
-        #         return None
-            
-        # def get_sell_turn(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].sell_turn
-        #     else:
-        #         return None
-            
-        # def get_settled(self, index):
-        #     if 0 <= index <= self.trade_id_count:
-        #         return self.trade_data[index].settled
-        #     else:
-        #         return None
 
 #testing
 if __name__ == "__main__":

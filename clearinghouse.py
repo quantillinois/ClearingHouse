@@ -1,5 +1,6 @@
 from trademessage import *
 from manager import Manager
+import toml
 
 class ClearingHouse:
 
@@ -9,6 +10,18 @@ class ClearingHouse:
         self._trade_processor = TradeProcessing()
         self._trade_processor.read_previous_trades_txt(self._trade_filepath)
         self._acc_manager = Manager(self._acc_filepath)
+        self._securities = toml.load("securities.toml")['securities']
+
+    def receive_new_contract(self, trade_message: TradeMessage):
+        self._trade_processor.read_new_trade(trade_message)
+        buyer_mpid = trade_message.buyer_mpid
+        seller_mpid = trade_message.seller_mpid
+        price = trade_message.price
+        ticker = trade_message.ticker[:4]
+        decimals = self._securities[ticker]['decimals']
+        lot = self._securities[ticker]['lot']
+        self.execute_cash_trade(buyer_mpid, seller_mpid, (-1.0 * price) / pow(10, decimals))
+        self.execute_security_trade(buyer_mpid, seller_mpid, ticker, trade_message.volume * lot)
 
     def on_turn(self, turn_num: int, price: int):
         trade_data = self._trade_processor.get_trades()
@@ -21,40 +34,40 @@ class ClearingHouse:
             trade_message = trade_info.getTradeMessage()
             buyer_mpid = trade_message.get_buyer_mpid()
             seller_mpid = trade_message.get_seller_mpid()
+            volume = trade_message.get_volume()
+            ticker = trade_message.get_ticker()[:4]
+            decimals = self._securities[ticker]['decimals']
+            lot = self._securities[ticker]['lot']
 
             if (buy_turn == turn_num and buy_turn == sell_turn): # not a spread
-                volume = trade_message.get_volume()
-                price_change = (price - trade_message.get_price()) * volume
+                price_change = ((price * lot) - (trade_message.get_price() * (lot - 1))) * volume / pow(10, decimals)
                 self.execute_cash_trade(buyer_mpid, seller_mpid, price_change)
+                self.execute_security_trade(buyer_mpid, seller_mpid, ticker, -1 * volume * lot)
                 self._trade_processor.set_to_settled(trade_message.get_trade_id())
 
             else: # spread
                 if (buy_turn == turn_num):
-                    volume = trade_message.get_volume()
-
                     if (buy_turn > sell_turn): # short sell, settling
-                        price_change = volume * price
+                        price_change = volume * price * lot / pow(10, decimals)
                         self.execute_cash_trade(buyer_mpid, seller_mpid, -1 * price_change)
-                        self.execute_security_trade(buyer_mpid, seller_mpid, trade_message.get_ticker()[:3], volume)
+                        self.execute_security_trade(buyer_mpid, seller_mpid, ticker, volume * lot)
                         self._trade_processor.set_to_settled(trade_message.get_trade_id())
                         
                     else: # regular, not settling
-                        price_change = volume * trade_message.get_price()
+                        price_change = volume * trade_message.get_price() * (lot - 1) / pow(10, decimals)
                         self.execute_cash_trade(buyer_mpid, seller_mpid, -1 * price_change)
-                        self.execute_security_trade(buyer_mpid, seller_mpid, trade_message.get_ticker()[:3], volume)
+                        self.execute_security_trade(buyer_mpid, seller_mpid, ticker, volume * lot)
 
                 if (sell_turn == turn_num):
-                    volume = trade_message.get_volume()
-
                     if (buy_turn > sell_turn): # sell short, not settling
-                        price_change = volume * trade_message.get_price()
+                        price_change = volume * trade_message.get_price() * (lot - 1) / pow(10, decimals)
                         self.execute_cash_trade(buyer_mpid, seller_mpid, price_change)
-                        self.execute_security_trade(buyer_mpid, seller_mpid, trade_message.get_ticker()[:3], -1 * volume)
+                        self.execute_security_trade(buyer_mpid, seller_mpid, ticker, -1 * volume * lot)
 
                     else: # regular, settling
-                        price_change = volume * price
+                        price_change = volume * price * lot / pow(10, decimals)
                         self.execute_cash_trade(buyer_mpid, seller_mpid, price_change)
-                        self.execute_security_trade(buyer_mpid, seller_mpid, trade_message.get_ticker()[:3], -1 * volume)
+                        self.execute_security_trade(buyer_mpid, seller_mpid, ticker, -1 * volume * lot)
                         self._trade_processor.set_to_settled(trade_message.get_trade_id())
 
     def execute_cash_trade(self, buyer_mpid, seller_mpid, buyer_price_change):
