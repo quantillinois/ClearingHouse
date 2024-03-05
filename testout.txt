@@ -1,8 +1,0 @@
-TradeMessage(ticker='TPCF0624', timestamp=6, price=88, volume=95, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='15')
-TradeMessage(ticker='TPCF0920', timestamp=9, price=102, volume=105, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='16')
-TradeMessage(ticker='TPCF1212', timestamp=12, price=97, volume=100, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='19')
-TradeMessage(ticker='TPCF0315', timestamp=3, price=110, volume=98, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='20')
-TradeMessage(ticker='TPCF1025', timestamp=10, price=94, volume=105, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='21')
-TradeMessage(ticker='TPCF0817', timestamp=8, price=100, volume=90, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='18')
-TradeMessage(ticker='TPCF0521', timestamp=5, price=95, volume=100, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='14')
-TradeMessage(ticker='TPCF1028', timestamp=10, price=105, volume=110, buyer_mpid='MPID1', buyer_order_id='None', seller_mpid='None', seller_order_id='0000000003', trade_id='23')
